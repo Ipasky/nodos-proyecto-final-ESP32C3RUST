@@ -74,5 +74,11 @@ De este modo, se instalan todos los archivos necesarios para trabajar con el dis
 
 ## Primer ejemplo
 
+Dado que las prácticas están diseñadas para realizarse mediante Raspberry Pi, utilizando los distintos periféricos proporcionados, estas pueden sufrir variaciones al implementarlas con el dispositivo ESP32-C3, ya que no dispone de todas las funcionalidades ni de los elementos externos necesarios para su implementación.
+
+De este modo, se plantea la realización de un primer ejemplo para familiarizarse con la programación a bajo nivel en este entorno de desarrollo. El ejercicio es muy básico, pero reúne los elementos iniciales necesarios para comprender aspectos fundamentales como la configuración de los pines de entrada y salida, el proceso de flasheado del dispositivo y la carga del código en el mismo.
+
+El primer paso para comenzar a desarrollar el código es crear un proyecto, en el cual se podrán añadir distitntos archivos .c para uso. 
+
 
 
