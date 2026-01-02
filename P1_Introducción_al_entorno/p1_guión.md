@@ -109,6 +109,7 @@ Para ello, se ha desarrollado un código que:
 3. Incrementa progresivamente el duty cycle desde 0 hasta el valor máximo, produciendo un cambio gradual de la intensidad de salida en el pin.
 
 Este ejercicio sirve como base para el siguiente paso: implementar un piano digital, en el que cada tecla corresponde a un GPIO y se genera un tono específico mediante PWM según la frecuencia fundamental de cada nota musical. La práctica permitirá aplicar los conceptos de PWM para producir señales audibles y manipular su frecuencia y amplitud de manera controlada.
+
 ---
 ### Explicación del código
 
