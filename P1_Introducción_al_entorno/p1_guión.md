@@ -109,3 +109,36 @@ Para ello, se ha desarrollado un código que:
 3. Incrementa progresivamente el duty cycle desde 0 hasta el valor máximo, produciendo un cambio gradual de la intensidad de salida en el pin.
 
 Este ejercicio sirve como base para el siguiente paso: implementar un piano digital, en el que cada tecla corresponde a un GPIO y se genera un tono específico mediante PWM según la frecuencia fundamental de cada nota musical. La práctica permitirá aplicar los conceptos de PWM para producir señales audibles y manipular su frecuencia y amplitud de manera controlada.
+---
+### Explicación del código
+
+El código desarrollado tiene como objetivo generar una señal PWM controlada por software en el ESP32-C3 y modificar progresivamente su duty cycle. Esto sirve como base para la futura implementación de un piano digital mediante PWM.
+
+- **Inclusión de librerías**
+Se incluyen las librerías necesarias para el funcionamiento del ESP32 y la gestión de FreeRTOS (freertos/FreeRTOS.h), GPIO (driver/gpio.h) y el periférico PWM LEDC (driver/ledc.h). También se incluye <esp_rom_sys.h> para funciones de retardo y <sys/time.h> para gestión de temporización si fuera necesario.
+
+- **Función delay_ms()**
+Permite introducir retardos en milisegundos sin bloquear completamente el sistema, usando la función vTaskDelay() de FreeRTOS. Esto es útil para temporizar la actualización del duty cycle de la señal PWM de manera controlada.
+
+- **Función PWMconfigLow()**
+Esta función configura un canal PWM en modo de baja velocidad (LEDC_LOW_SPEED_MODE).
+
+Se define el timer del canal, la resolución de duty cycle, la frecuencia de la señal y el duty inicial.
+
+Se configura el canal LEDC asignándole el GPIO de salida y la duty cycle correspondiente.
+
+- **ledc_timer_config() y ledc_channel_config()** aplican la configuración al periférico.
+Esta función permite crear de manera modular diferentes señales PWM en distintos pines y con distintas frecuencias o resoluciones.
+
+- **Función app_main()**
+Es la función principal que se ejecuta al iniciar el ESP32.
+
+Configura el PWM en el GPIO 7 mediante PWMconfigLow().
+
+Luego, en un bucle infinito, incrementa progresivamente el duty cycle de 0 a 256 utilizando ledc_set_duty() y ledc_update_duty().
+
+Entre cada incremento se introduce un retardo de 10 ms mediante delay_ms() para que el cambio sea gradual y perceptible.
+El resultado es una señal PWM que varía su duty cycle de forma progresiva, mostrando cómo controlar la intensidad de la salida de manera programática.
+
+
+Este código permite entender cómo configurar y usar el periférico LEDC en ESP32, comprender la relación entre frecuencia, resolución y duty cycle y preparar la base para la futura implementación de un piano digital, donde cada tecla se asociará a un GPIO y a una frecuencia fundamental específica de la nota.
