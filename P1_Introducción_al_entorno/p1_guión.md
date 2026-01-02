@@ -98,3 +98,14 @@ Este ejemplo sirve como base para comprender el manejo de GPIOs y temporización
 
 ---
 ## Práctica 1
+El objetivo de este ejercicio es familiarizarse con la generación de señales PWM en el ESP32-C3 utilizando el periférico LEDC de ESP-IDF. Se busca comprender cómo configurar los parámetros de PWM —frecuencia, resolución y duty cycle— y cómo modificar dinámicamente la señal en tiempo de ejecución.
+
+Para ello, se ha desarrollado un código que:
+
+1. Configura un canal PWM en el GPIO 7.
+
+2. Genera una señal de frecuencia fija (2 kHz) y duty cycle variable.
+
+3. Incrementa progresivamente el duty cycle desde 0 hasta el valor máximo, produciendo un cambio gradual de la intensidad de salida en el pin.
+
+Este ejercicio sirve como base para el siguiente paso: implementar un piano digital, en el que cada tecla corresponde a un GPIO y se genera un tono específico mediante PWM según la frecuencia fundamental de cada nota musical. La práctica permitirá aplicar los conceptos de PWM para producir señales audibles y manipular su frecuencia y amplitud de manera controlada.
