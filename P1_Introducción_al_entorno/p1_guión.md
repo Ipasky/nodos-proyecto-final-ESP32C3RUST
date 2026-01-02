@@ -74,14 +74,27 @@ De este modo, se instalan todos los archivos necesarios para trabajar con el dis
 
 ## Primer ejemplo
 
-Dado que las prácticas propuestas están originalmente diseñadas para su realización mediante Raspberry Pi, haciendo uso de los distintos periféricos que esta plataforma proporciona, su implementación puede presentar ciertas variaciones al trasladarlas al dispositivo ESP32-C3. Esto se debe a que dicho microcontrolador no dispone de todas las funcionalidades ni de los elementos externos presentes en la Raspberry Pi.
+Las prácticas originales están diseñadas para Raspberry Pi, utilizando sus periféricos, por lo que su implementación en ESP32-C3 puede presentar algunas variaciones, ya que este microcontrolador no dispone de todas las funcionalidades ni de los elementos externos de la Raspberry Pi.
 
-Por este motivo, se plantea la realización de un primer ejemplo introductorio, cuyo objetivo es familiarizarse con la programación a bajo nivel en el entorno de desarrollo seleccionado. Aunque se trata de un ejercicio sencillo, este permite introducir los conceptos básicos necesarios para comprender aspectos fundamentales como la configuración de pines de entrada y salida, el proceso de flasheado del dispositivo y la carga y ejecución del código en la placa.
+Por ello, se plantea un primer ejemplo introductorio para familiarizarse con la programación a bajo nivel en ESP-IDF. Este ejercicio sencillo permite comprender conceptos básicos como la configuración de pines de entrada y salida, el flasheado del dispositivo y la carga del código en la placa.
 
-El primer paso para comenzar el desarrollo del software consiste en la creación de un proyecto, dentro del cual será posible añadir distintos archivos con extensión .c según las necesidades de la aplicación.
+El primer paso consiste en crear un proyecto en el que se pueden añadir archivos .c según las necesidades de la aplicación.
 
 <p align="center"> <img width="600" alt="image" src="https://github.com/user-attachments/assets/d2e0f7a0-670a-4284-a132-e36afb2c3af7" /> <img width="600" alt="image" src="https://github.com/user-attachments/assets/7c6e10c0-b680-417f-92e0-2a30cb04226d" /> </p>
 
-A partir de la documentación proporcionada por el fabricante, se identifican los periféricos disponibles en el dispositivo, así como sus correspondientes pines y GPIOs. Con esta información, se ha desarrollado un primer código muy simple con el fin de familiarizarse con el uso de los GPIOs y el encendido de LEDs.
+A partir de la documentación del fabricante, se identifican los periféricos y GPIOs disponibles. Con esta información, se ha desarrollado un código sencillo que permite controlar un LED mediante GPIO, como introducción a la primera práctica sobre modulación por ancho de pulso (PWM).
 
-La finalidad de este ejemplo es servir como introducción a la primera práctica, centrada en la modulación por ancho de pulso (PWM). A continuación, se presentará el enunciado adaptado de la Práctica 1, así como su desarrollo empleando la placa ESP32-C3.
+Para ello se utilizan funciones clave de ESP-IDF:
+
+- **gpio_reset_pin()** asegura que el pin se encuentra en un estado conocido antes de configurarlo.
+
+- **gpio_set_direction()** establece el pin como salida digital.
+
+- **gpio_set_level()** controla el estado lógico del LED, encendiéndolo o apagándolo.
+
+- **vTaskDelay()** de FreeRTOS genera retardos temporales sin bloquear el sistema, permitiendo un parpadeo periódico del LED.
+
+Este ejemplo sirve como base para comprender el manejo de GPIOs y temporización básica, preparando el entorno para la implementación de señales PWM en prácticas posteriores.
+
+---
+## Práctica 1
