@@ -74,16 +74,14 @@ De este modo, se instalan todos los archivos necesarios para trabajar con el dis
 
 ## Primer ejemplo
 
-Dado que las prácticas están diseñadas para realizarse mediante Raspberry Pi, utilizando los distintos periféricos proporcionados, estas pueden sufrir variaciones al implementarlas con el dispositivo ESP32-C3, ya que no dispone de todas las funcionalidades ni de los elementos externos necesarios para su implementación.
+Dado que las prácticas propuestas están originalmente diseñadas para su realización mediante Raspberry Pi, haciendo uso de los distintos periféricos que esta plataforma proporciona, su implementación puede presentar ciertas variaciones al trasladarlas al dispositivo ESP32-C3. Esto se debe a que dicho microcontrolador no dispone de todas las funcionalidades ni de los elementos externos presentes en la Raspberry Pi.
 
-De este modo, se plantea la realización de un primer ejemplo para familiarizarse con la programación a bajo nivel en este entorno de desarrollo. El ejercicio es muy básico, pero reúne los elementos iniciales necesarios para comprender aspectos fundamentales como la configuración de los pines de entrada y salida, el proceso de flasheado del dispositivo y la carga del código en el mismo.
+Por este motivo, se plantea la realización de un primer ejemplo introductorio, cuyo objetivo es familiarizarse con la programación a bajo nivel en el entorno de desarrollo seleccionado. Aunque se trata de un ejercicio sencillo, este permite introducir los conceptos básicos necesarios para comprender aspectos fundamentales como la configuración de pines de entrada y salida, el proceso de flasheado del dispositivo y la carga y ejecución del código en la placa.
 
-El primer paso para comenzar a desarrollar el código es crear un proyecto, en el cual se podrán añadir distitntos archivos .c para uso. 
+El primer paso para comenzar el desarrollo del software consiste en la creación de un proyecto, dentro del cual será posible añadir distintos archivos con extensión .c según las necesidades de la aplicación.
 
-<p align="center">
-<img width="600"  alt="image" src="https://github.com/user-attachments/assets/d2e0f7a0-670a-4284-a132-e36afb2c3af7" />
-<img width="600"  alt="image" src="https://github.com/user-attachments/assets/7c6e10c0-b680-417f-92e0-2a30cb04226d" />
-</p>
+<p align="center"> <img width="600" alt="image" src="https://github.com/user-attachments/assets/d2e0f7a0-670a-4284-a132-e36afb2c3af7" /> <img width="600" alt="image" src="https://github.com/user-attachments/assets/7c6e10c0-b680-417f-92e0-2a30cb04226d" /> </p>
 
-Buscando en los documentos proporcionados por el fabricante, se conocen cuales son los elementos de los que dispone el dispositivo, así como sus corresponedientes pines y GPIOs. 
+A partir de la documentación proporcionada por el fabricante, se identifican los periféricos disponibles en el dispositivo, así como sus correspondientes pines y GPIOs. Con esta información, se ha desarrollado un primer código muy simple con el fin de familiarizarse con el uso de los GPIOs y el encendido de LEDs.
 
+La finalidad de este ejemplo es servir como introducción a la primera práctica, centrada en la modulación por ancho de pulso (PWM). A continuación, se presentará el enunciado adaptado de la Práctica 1, así como su desarrollo empleando la placa ESP32-C3.
