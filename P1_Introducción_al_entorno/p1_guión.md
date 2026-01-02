@@ -80,5 +80,10 @@ De este modo, se plantea la realización de un primer ejemplo para familiarizars
 
 El primer paso para comenzar a desarrollar el código es crear un proyecto, en el cual se podrán añadir distitntos archivos .c para uso. 
 
+<p align="center">
+<img width="600"  alt="image" src="https://github.com/user-attachments/assets/d2e0f7a0-670a-4284-a132-e36afb2c3af7" />
+<img width="600"  alt="image" src="https://github.com/user-attachments/assets/7c6e10c0-b680-417f-92e0-2a30cb04226d" />
+</p>
 
+Buscando en los documentos proporcionados por el fabricante, se conocen cuales son los elementos de los que dispone el dispositivo, así como sus corresponedientes pines y GPIOs. 
 
