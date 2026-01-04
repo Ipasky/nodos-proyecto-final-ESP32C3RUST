@@ -97,7 +97,7 @@ void app_main(void)
     pwm_init();
     adc_init();
 
-    int max_duty = (1 << PWM_RES) - 1;
+    int max_duty = (1 << PWM_RES) - 1; //255 
     int adc_val;
 
     printf("PWM + ADC ESP32-C3 iniciado\n");
@@ -109,12 +109,13 @@ void app_main(void)
             int duty = (int)(pulso[i] * max_duty);
             ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, duty);
             ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
-
+            vTaskDelay(pdMS_TO_TICKS(50)); //estabilizar PWM
             // -------- ADC
             adc_oneshot_read(adc_handle, ADC_CANAL, &adc_val);
-
+            double adc_voltage = adc_val * (3.3 / 4095.0);  // caracterización ADC
+            double duty_voltage = (duty / (double)max_duty) * 3.3; // Voltaje PWM
             // -------- Detección de latido
-            printf("ADC: %d", adc_val);
+            printf("ADC: %d, Voltaje salida : %.2f V , Voltaje PWM: %.2f V", adc_val, duty_voltage, adc_voltage);
 
             if (!pulso_activo && adc_val > UMBRAL_ALTO) {
                 pulso_activo = true;
@@ -131,4 +132,3 @@ void app_main(void)
         }
     }
 }
-
