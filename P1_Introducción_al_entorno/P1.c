@@ -1,29 +1,30 @@
-#include <stdio.h>
-#include "driver/gpio.h"
-#include "esp32c3/rom/ets_sys.h"  // Para ets_delay_us()
+#include <stdint.h>
+#include "esp32c3/rom/ets_sys.h"
 
-#define LED GPIO_NUM_7
+#define GPIO_BASE       0x60004000
+#define GPIO_OUT_W1TS   (GPIO_BASE + 0x08)
+#define GPIO_OUT_W1TC   (GPIO_BASE + 0x0C)
+#define GPIO_ENABLE_W1TS (GPIO_BASE + 0x20)
+#define GPIO_ENABLE_W1TC (GPIO_BASE + 0x24)
 
-void app_main(void)
-{
-    // Inicializamos el pin como salida
-    gpio_reset_pin(LED);
-    gpio_set_direction(LED, GPIO_MODE_OUTPUT);
+#define LED 7
+#define DELAY_MS 500
 
-    while (1)
-    {
-        // LED apagado
-        gpio_set_level(LED, 0);
+void app_main(void) {
+    volatile uint32_t* gpio_out_w1ts = (volatile uint32_t*) GPIO_OUT_W1TS;
+    volatile uint32_t* gpio_out_w1tc = (volatile uint32_t*) GPIO_OUT_W1TC;
+    volatile uint32_t* gpio_enable_w1ts = (volatile uint32_t*) GPIO_ENABLE_W1TS;
 
-        // Delay de 1 segundo (1000000 microsegundos)
-        ets_delay_us(1000000);
+    // Configura GPIO7 como salida
+    *gpio_enable_w1ts = (1 << LED);
 
-        // LED encendido
-        gpio_set_level(LED, 1);
+    while(1) {
+        // Encender LED
+        *gpio_out_w1ts = (1 << LED);
+        ets_delay_us(DELAY_MS * 1000);
 
-        // Delay de 1 segundo
-        ets_delay_us(1000000);
+        // Apagar LED
+        *gpio_out_w1tc = (1 << LED);
+        ets_delay_us(DELAY_MS * 1000);
     }
 }
-
-
