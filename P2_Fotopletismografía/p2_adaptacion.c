@@ -1,134 +1,90 @@
 #include <stdio.h>
-#include <stdbool.h>
+#include <stdint.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#include "driver/ledc.h"
+#include "esp32c3/rom/ets_sys.h"
 #include "esp_adc/adc_oneshot.h"
-#include "esp_err.h"
 
-// =======================
-// CONFIGURACIÓN PWM
-// =======================
+// dirección base GPIOs
+#define GPIO_BASE       0x60004000
+#define GPIO_OUT_W1TS   (GPIO_BASE + 0x08)
+#define GPIO_OUT_W1TC   (GPIO_BASE + 0x0C)
+#define GPIO_ENABLE_W1TS (GPIO_BASE + 0x20)
 
-#define GPIO_PWM        7
-#define PWM_CHANNEL     LEDC_CHANNEL_0
-#define PWM_TIMER       LEDC_TIMER_0
-#define PWM_RES         LEDC_TIMER_8_BIT
-#define PWM_FREQ        5000   // PWM rápido para filtrar (RC)
+#define GPIO_PWM 2
 
-// Forma de onda del pulso (normalizada 0–1)
-float pulso[] = {
-    0.0, 0.1, 0.3, 0.6, 1.0,
-    0.6, 0.3, 0.15, 0.1,
-    0.08, 0.06, 0.05, 0.05, 0.05
-};
+// ADC
+#define ADC_CH ADC_CHANNEL_0
+adc_oneshot_unit_handle_t adc;
 
-int pulso_len = sizeof(pulso) / sizeof(float);
-
-// Para 1 Hz → 1000 ms / 14 ≈ 70 ms
-#define PULSO_DELAY_MS 70
-
-// =======================
-// CONFIGURACIÓN ADC (ESP32-C3)
-// =======================
-
-// ADC0 = GPIO0
-#define ADC_CANAL ADC_CHANNEL_0
-
-#define UMBRAL_ALTO 2100
-#define UMBRAL_BAJO 1800
-
-adc_oneshot_unit_handle_t adc_handle;
-static bool pulso_activo = false;
-
-// =======================
-// INICIALIZAR PWM
-// =======================
-
-void pwm_init(void)
+//inicializar GPIO
+void gpio_init(int pin)
 {
-    ledc_timer_config_t timer = {
-        .speed_mode       = LEDC_LOW_SPEED_MODE,
-        .timer_num        = PWM_TIMER,
-        .duty_resolution  = PWM_RES,
-        .freq_hz          = PWM_FREQ,
-        .clk_cfg          = LEDC_APB_CLK
-    };
-    ESP_ERROR_CHECK(ledc_timer_config(&timer));
-
-    ledc_channel_config_t channel = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel    = PWM_CHANNEL,
-        .timer_sel  = PWM_TIMER,
-        .gpio_num   = GPIO_PWM,
-        .duty       = 0,
-        .hpoint     = 0
-    };
-    ESP_ERROR_CHECK(ledc_channel_config(&channel));
+    volatile uint32_t* enable = (uint32_t*) GPIO_ENABLE_W1TS;
+    *enable = (1 << pin);
 }
 
-// =======================
-// INICIALIZAR ADC
-// =======================
-
+// Función para inicializar el ADC
 void adc_init(void)
 {
-    adc_oneshot_unit_init_cfg_t init_cfg = {
-        .unit_id = ADC_UNIT_1,
-        .ulp_mode = ADC_ULP_MODE_DISABLE
+    adc_oneshot_unit_init_cfg_t init = {
+        .unit_id = ADC_UNIT_1
     };
-    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_cfg, &adc_handle));
+    adc_oneshot_new_unit(&init, &adc);
 
-    adc_oneshot_chan_cfg_t chan_cfg = {
-        .atten = ADC_ATTEN_DB_11,     // 0–3.3 V
+    adc_oneshot_chan_cfg_t cfg = {
+        .atten = ADC_ATTEN_DB_11,
         .bitwidth = ADC_BITWIDTH_12
     };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CANAL, &chan_cfg));
+    adc_oneshot_config_channel(adc, ADC_CH, &cfg);
 }
 
-// =======================
-// MAIN
-// =======================
+// Función para generar el PWM 
+void pwm(int pin, float duty, int periodo_us)
+{
+    int ton  = periodo_us * duty;
+    int toff = periodo_us - ton;
 
+    volatile uint32_t* set = (uint32_t*) GPIO_OUT_W1TS;
+    volatile uint32_t* clr = (uint32_t*) GPIO_OUT_W1TC;
+
+    *set = (1 << pin);
+    ets_delay_us(ton);
+
+    *clr = (1 << pin);
+    ets_delay_us(toff);
+}
+
+//función en la 
 void app_main(void)
 {
-    pwm_init();
+    //se inicializa el PWM y ADC
+    gpio_init(GPIO_PWM);
     adc_init();
 
-    int max_duty = (1 << PWM_RES) - 1; //255 
+    float duty = 0.0; // duty cycle inicial
+    int dir = 1;
     int adc_val;
 
-    printf("PWM + ADC ESP32-C3 iniciado\n");
-
     while (1) {
-        for (int i = 0; i < pulso_len; i++) {
 
-            
-            int duty = (int)(pulso[i] * max_duty);
-            ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, duty);
-            ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
-            vTaskDelay(pdMS_TO_TICKS(50)); //estabilizar PWM
-            // -------- ADC
-            adc_oneshot_read(adc_handle, ADC_CANAL, &adc_val);
-            double adc_voltage = adc_val * (3.3 / 4095.0);  // caracterización ADC
-            double duty_voltage = (duty / (double)max_duty) * 3.3; // Voltaje PWM
-            // -------- Detección de latido
-            printf("ADC: %d, Voltaje salida : %.2f V , Voltaje PWM: %.2f V", adc_val, duty_voltage, adc_voltage);
+        // 
+        for (int i = 0; i < 50; i++) {
+            pwm(GPIO_PWM, duty, 1e4); 
+        }
 
-            if (!pulso_activo && adc_val > UMBRAL_ALTO) {
-                pulso_activo = true;
-                printf("  --> LATIDO");
-            }
+        // Lee el ADC
+        adc_oneshot_read(adc, ADC_CH, &adc_val);
+        // Se muestra por pantalla
+        printf("Duty: %.2f  ADC: %d\n", duty, adc_val);
 
-            if (pulso_activo && adc_val < UMBRAL_BAJO) {
-                pulso_activo = false;
-            }
-
-            printf("\n");
-
-            vTaskDelay(pdMS_TO_TICKS(PULSO_DELAY_MS));
+        // variación del duty cylce para generar un bucle 
+        duty += dir * 0.05;
+        if (duty >= 1.0) { 
+            duty = 1.0; dir = -1;
+        }
+        if (duty <= 0.0) { 
+            duty = 0.0; dir = 1; 
         }
     }
 }
+
