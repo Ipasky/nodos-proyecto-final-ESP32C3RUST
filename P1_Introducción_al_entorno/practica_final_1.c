@@ -2,13 +2,13 @@
 #include <stdint.h>
 #include <string.h>
 #include "esp32c3/rom/ets_sys.h"
-
+// direcciones base de los GPIOs
 #define GPIO_BASE        0x60004000
 #define GPIO_OUT_W1TS    (GPIO_BASE + 0x08)
 #define GPIO_OUT_W1TC    (GPIO_BASE + 0x0C)
 #define GPIO_ENABLE_W1TS (GPIO_BASE + 0x20)
 
-#define BUZZER_PIN 2  // pin seguro para DevKit, reemplaza 7 si quieres
+#define ZUMBADOR 2 
 #define DELAY_US 1    // tiempo base para el PWM
 
 // registros GPIO
@@ -16,7 +16,7 @@ volatile uint32_t* gpio_out_w1ts = (volatile uint32_t*) GPIO_OUT_W1TS;
 volatile uint32_t* gpio_out_w1tc = (volatile uint32_t*) GPIO_OUT_W1TC;
 volatile uint32_t* gpio_enable_w1ts = (volatile uint32_t*) GPIO_ENABLE_W1TS;
 
-// ---------- DEFINICIÓN DE NOTAS ----------
+// ESTRUCTURA: nombre y frecuencia fundamental de las notas
 typedef struct {
     const char *nombre;
     int freq;   // frecuencia en Hz
@@ -33,6 +33,7 @@ Nota notas[] = {
     {"DO5", 523}
 };
 
+// Estructura: nombre y duración de la nota 
 typedef struct {
     const char *nombre;
     int duracion_ms;
@@ -48,8 +49,6 @@ NotaPartitura partitura[] = {
 int longPartitura = sizeof(partitura)/sizeof(NotaPartitura);
 int numNotas = sizeof(notas)/sizeof(Nota);
 
-// ---------- FUNCIONES ----------
-
 // Busca índice de nota
 int Indice(const char *nombre) {
     for (int i = 0; i < numNotas; i++) {
@@ -58,12 +57,12 @@ int Indice(const char *nombre) {
     return -1;
 }
 
-// Delay en milisegundos
+// Retardo en milisegundos para las pausas
 void delay_ms(int t) {
     ets_delay_us(t * 1000);
 }
 
-// Genera un ciclo de PWM por software para una nota
+// Genera las notas en función de la frecuencia
 void play_nota(const char *nota, int duracion_ms) {
     int freq = notas[Indice(nota)].freq;
     if (freq <= 0) return;
@@ -74,19 +73,18 @@ void play_nota(const char *nota, int duracion_ms) {
 
     for (int i = 0; i < repeticiones; i++) {
         // Encender pin
-        *gpio_out_w1ts = (1 << BUZZER_PIN);
+        *gpio_out_w1ts = (1 << ZUMBADOR);
         ets_delay_us(mitad_periodo);
 
         // Apagar pin
-        *gpio_out_w1tc = (1 << BUZZER_PIN);
+        *gpio_out_w1tc = (1 << ZUMBADOR);
         ets_delay_us(mitad_periodo);
     }
 
-    // Pequeño silencio entre notas
+    // pausa entre notas
     delay_ms(50);
 }
 
-// ---------- MAIN ----------
 void app_main(void) {
     // Configurar pin como salida
     *gpio_enable_w1ts = (1 << BUZZER_PIN);
@@ -96,7 +94,7 @@ void app_main(void) {
             play_nota(partitura[i].nombre, partitura[i].duracion_ms);
         }
 
-        // Silencio entre repeticiones
+        // pausa entre repetición de la canción
         delay_ms(200);
     }
 }
