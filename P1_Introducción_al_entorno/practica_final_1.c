@@ -1,22 +1,25 @@
 
-#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/ledc.h"
-#include "driver/gpio.h"
+#include "esp32c3/rom/ets_sys.h"
 
-// ---------- PIN Y PWM ----------
-#define GPIO_PWM 7
-#define PWM_CHANNEL 0
-#define PWM_TIMER 0
-#define PWM_RES 8   // resolución de 8 bits
+#define GPIO_BASE        0x60004000
+#define GPIO_OUT_W1TS    (GPIO_BASE + 0x08)
+#define GPIO_OUT_W1TC    (GPIO_BASE + 0x0C)
+#define GPIO_ENABLE_W1TS (GPIO_BASE + 0x20)
+
+#define BUZZER_PIN 2  // pin seguro para DevKit, reemplaza 7 si quieres
+#define DELAY_US 1    // tiempo base para el PWM
+
+// registros GPIO
+volatile uint32_t* gpio_out_w1ts = (volatile uint32_t*) GPIO_OUT_W1TS;
+volatile uint32_t* gpio_out_w1tc = (volatile uint32_t*) GPIO_OUT_W1TC;
+volatile uint32_t* gpio_enable_w1ts = (volatile uint32_t*) GPIO_ENABLE_W1TS;
 
 // ---------- DEFINICIÓN DE NOTAS ----------
 typedef struct {
-    char *nombre;
-    int freq;   // Frecuencia de la nota en Hz
-
+    const char *nombre;
+    int freq;   // frecuencia en Hz
 } Nota;
 
 Nota notas[] = {
@@ -29,10 +32,12 @@ Nota notas[] = {
     {"SI", 493},
     {"DO5", 523}
 };
+
 typedef struct {
-    const char *nombre; // Nombre de la nota
-    int duracion_ms;    // Duración en milisegundos
+    const char *nombre;
+    int duracion_ms;
 } NotaPartitura;
+
 NotaPartitura partitura[] = {
     {"DO", 400}, {"DO", 400}, {"SOL", 400}, {"SOL", 400},
     {"LA", 400}, {"LA", 400}, {"SOL", 800},
@@ -40,78 +45,58 @@ NotaPartitura partitura[] = {
     {"RE", 400}, {"MI", 400}, {"DO", 800}
 };
 
-int longPartitura = sizeof(partitura) / sizeof(NotaPartitura);
-
-
+int longPartitura = sizeof(partitura)/sizeof(NotaPartitura);
 int numNotas = sizeof(notas)/sizeof(Nota);
 
-// FUNCIONES 
+// ---------- FUNCIONES ----------
 
-// busca la nota en la partitura y devuelve su índice
+// Busca índice de nota
 int Indice(const char *nombre) {
     for (int i = 0; i < numNotas; i++) {
-        if (strcmp(nombre, notas[i].nombre) == 0) {
-            return i;
-        }
+        if (strcmp(nombre, notas[i].nombre) == 0) return i;
     }
-    return -1; // si no se encuentra
+    return -1;
 }
 
-// Función para retraso en ms
-void pausa(int t) {
-    vTaskDelay(t / portTICK_PERIOD_MS);
+// Delay en milisegundos
+void delay_ms(int t) {
+    ets_delay_us(t * 1000);
 }
 
-// Función para reproducir una nota con PWM y duty cycle 50%
-void play_nota(const char *nota, int duracion) {
+// Genera un ciclo de PWM por software para una nota
+void play_nota(const char *nota, int duracion_ms) {
     int freq = notas[Indice(nota)].freq;
+    if (freq <= 0) return;
 
-    // Configurar timer LEDC
-    ledc_timer_config_t ledc_timer = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .timer_num = PWM_TIMER,
-        .duty_resolution = PWM_RES,
-        .freq_hz = freq,
-        .clk_cfg = LEDC_APB_CLK
-    };
+    int periodo_us = 1000000 / freq;  // periodo de la onda
+    int mitad_periodo = periodo_us / 2; // 50% duty cycle
+    int repeticiones = (duracion_ms * 1000) / periodo_us;
 
-    // Configurar canal LEDC
-    ledc_channel_config_t ledc_channel = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = PWM_CHANNEL,
-        .timer_sel = PWM_TIMER,
-        .intr_type = LEDC_INTR_DISABLE,
-        .gpio_num = GPIO_PWM,
-        .duty = (2 << (PWM_RES - 1)) / 2  // duty cycle fijo 50%
-    };
+    for (int i = 0; i < repeticiones; i++) {
+        // Encender pin
+        *gpio_out_w1ts = (1 << BUZZER_PIN);
+        ets_delay_us(mitad_periodo);
 
-    ledc_timer_config(&ledc_timer);
-    ledc_channel_config(&ledc_channel);
+        // Apagar pin
+        *gpio_out_w1tc = (1 << BUZZER_PIN);
+        ets_delay_us(mitad_periodo);
+    }
 
-    pausa(duracion);
-
-    // Apagar la nota
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL, 0);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, PWM_CHANNEL);
-
-    // pausa entre las notas
-    pausa(50);
+    // Pequeño silencio entre notas
+    delay_ms(50);
 }
 
-
+// ---------- MAIN ----------
 void app_main(void) {
-
-    // PWM salida 
-    gpio_set_direction(GPIO_PWM, GPIO_MODE_OUTPUT);
+    // Configurar pin como salida
+    *gpio_enable_w1ts = (1 << BUZZER_PIN);
 
     while (1) {
-        //partitura en bucle
         for (int i = 0; i < longPartitura; i++) {
             play_nota(partitura[i].nombre, partitura[i].duracion_ms);
-            printf("Nota: %s\n", partitura[i].nombre);
         }
 
-        //silencio entre repeticiones
-        pausa(200);
+        // Silencio entre repeticiones
+        delay_ms(200);
     }
 }
