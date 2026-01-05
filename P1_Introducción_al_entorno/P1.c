@@ -7,7 +7,7 @@
 #define GPIO_ENABLE_W1TS (GPIO_BASE + 0x20)
 #define GPIO_ENABLE_W1TC (GPIO_BASE + 0x24)
 
-#define LED 7
+#define LED 2
 #define DELAY_MS 500
 
 void app_main(void) {
