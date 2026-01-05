@@ -70,6 +70,14 @@ De este modo, se instalan todos los archivos necesarios para trabajar con el dis
   <img src="https://github.com/user-attachments/assets/776dc87e-31a7-4280-a09a-89a899b44a0b" width="600" alt="Entorno listo"/>
 </p>
 
+Para seguir paso a paso la configuración del entorno en Visual Studio Code y ver un ejemplo básico de funcionamiento, se recomiendan los siguientes vídeos, donde se explica el proceso de instalación, configuración y verificación de la placa. 
+
+El segundo vídeo es una actualización del primero, ya que este contiene algunos pasos o datos que han quedado desfasados:
+
+- `https://www.youtube.com/watch?v=5IuZ-E8Tmhg&t=57s`
+- `https://www.youtube.com/watch?v=N93RvZz6dEc`
+
+
 ---
 
 ## Primer ejemplo
