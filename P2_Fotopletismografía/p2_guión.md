@@ -171,9 +171,9 @@ En primer lugar, se selecciona la unidad ADC a utilizar mediante el campo unit_i
 
 A continuación, se configura el canal ADC concreto a través de la estructura **adc_oneshot_chan_cfg_t** . En esta configuración se definen dos parámetros fundamentales:
 
-- Atenuación (atten): se selecciona ADC_ATTEN_DB_11, lo que permite medir tensiones de hasta aproximadamente 3.3 V. A nivel hardware, esta configuración ajusta la red de atenuación interna del ADC, equivalente a la configuración manual de los registros de ganancia y rango de entrada.
+- **Atenuación (atten)**: se selecciona ADC_ATTEN_DB_11, lo que permite medir tensiones de hasta aproximadamente 3.3 V. A nivel hardware, esta configuración ajusta la red de atenuación interna del ADC, equivalente a la configuración manual de los registros de ganancia y rango de entrada.
 
-- Resolución (bitwidth): se establece una resolución de 12 bits, por lo que el valor digital obtenido estará comprendido entre 0 y 4095. Este parámetro corresponde directamente al número de bits efectivos del conversor SAR.
+- **Resolución (bitwidth)**: se establece una resolución de 12 bits, por lo que el valor digital obtenido estará comprendido entre 0 y 4095. Este parámetro corresponde directamente al número de bits efectivos del conversor SAR.
 
 Finalmente, la llamada a **adc_oneshot_config_channel()** asocia el canal ADC seleccionado con la configuración definida, dejando el ADC preparado para realizar conversiones puntuales cuando se soliciten mediante la función de lectura.
 
@@ -182,31 +182,45 @@ En conjunto, aunque el uso de adc_oneshot no refleja el acceso directo a los reg
 ---
 ## Análisis de los resultados
 
-De este modo, se cargó el código en el dispositivo y se extrajeron los datos capturados por el ADC. 
+De este modo, el código desarrollado se cargó en el dispositivo y se procedió a la adquisición de los datos proporcionados por el ADC interno de la ESP32-C3. Las muestras obtenidas durante la ejecución del programa se enviaron a través del puerto serie, permitiendo su visualización en tiempo real y su posterior almacenamiento.
+
+En una primera etapa, los valores leídos por el ADC se mostraron en el terminal serie, desde donde fueron recolectados mediante un script en Python. Dicho script se encarga de leer el puerto de comunicación especificado, almacenar los datos capturados y procesarlos para su análisis posterior.
 <p align="center">
 <img width="200" alt="image" src="https://github.com/user-attachments/assets/f3cc2b03-b68d-46f9-9d77-d215f1d0655b" />
 </p>
+
+A partir de los valores digitales obtenidos, se realizó la conversión de los datos del ADC a valores de tensión, permitiendo su representación gráfica y el estudio de la señal adquirida. Esta representación facilita la comparación entre la señal medida y el comportamiento esperado en condiciones ideales.
+
 <p align="center">
 <img width="600"  alt="image" src="https://github.com/user-attachments/assets/d4318ef5-aaec-4fb3-9cc2-760e86bbcaf4" />
 </p>
+Asimismo, se llevó a cabo una comparación entre los valores obtenidos experimentalmente y los valores ideales teóricos, observándose pequeñas desviaciones atribuibles a la no idealidad del ADC. Estas diferencias son consecuencia de factores como el offset, la ganancia y la resolución del conversor.
+
+
+
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/7de17706-15e0-4840-8149-c01940a21695"
        width="600" style="margin-bottom: 20px;" />
 
   </p>
+Por este motivo, se procedió a la caracterización del ADC, realizando un barrido de tensión en la entrada y analizando la respuesta del conversor a lo largo de todo su rango de funcionamiento. A partir de este estudio fue posible estimar parámetros característicos del ADC, tales como el error de offset, el error de ganancia y la no linealidad diferencial máxima (DNL), lo que permitió evaluar el comportamiento real del sistema de adquisición implementado.
 <p align="center">
   <img src="https://github.com/user-attachments/assets/ea37f165-f1f2-4600-9f7b-ab97c8d630cc"
        width="600" style="margin-bottom: 20px;" />
 
   </p>
+ En el análisis del error entre los valores medidos y los valores ideales, se observa que las mayores desviaciones aparecen en la región correspondiente a las tensiones más elevadas, próximas al valor máximo del rango de entrada del ADC. En esta zona, el conversor se satura, de modo que los valores registrados se mantienen constantes en 4095, que corresponde al valor máximo de un ADC de 12 bits. Este comportamiento es coherente con el funcionamiento del ADC y explica la aparición de un error creciente en los últimos puntos del barrido de tensión, reflejando el hecho de que el error no es uniforme.
+
+Por otro lado, en el estudio de la no linealidad diferencial (DNL), se observa que el valor oscila a lo largo del barrido en tensión, manteniéndose en torno a un valor medio aproximado de 15.Además, en las últimas muestras se aprecia una disminución del DNL,relacionada con la saturación del ADC en la zona de mayor tensión, donde el conversor no incrementa el código de su salida.
+
+Así, son visibles las limitaciones del ADC de la ESP32-C3 en los extremos de su rango dinámico, sobre todo cerca de la tensión máxima, mientras que en la zona central tiene un comportamiento más estable y parecido al ideal.
 <p align="center">
   <img src="https://github.com/user-attachments/assets/9c9cbdb9-12e5-40f5-adf0-f33c53f572fb"
        width="600" />
 </p>
 
-
-
+Tras analizar las diferentes gráficas obtenidas durante el proceso de caracterización del ADC, se presenta a continuación una tabla resumen con los principales parámetros numéricos extraídos, expresados tanto en LSB como en voltios, con el objetivo de facilitar su interpretación.
 
 | Parámetro    | Valor (LSB) | Valor (V) |
 |:------------:|:-----------:|:---------:|
@@ -214,4 +228,10 @@ De este modo, se cargó el código en el dispositivo y se extrajeron los datos c
 | Gain error   | 0.5         | 0.40 mV   |
 | DNL máximo   | 31          | 25 mV     |
 
+El error de offset representa el desplazamiento del punto de inicio de la conversión respecto al valor ideal, observándose un valor de 21 LSB, equivalente a 16.9 mV. Este error provoca que, para tensiones de entrada cercanas a cero, el ADC no lea un valor nulo, introduciendo cierto error. 
 
+El error de ganancia refleja la desviación de la pendiente real de la curva de transferencia respecto a la ideal. En este caso, el valor obtenido es pequeño, lo que indica que el ADC tiene un comportamiento cercano al ideal en la ganancia global.
+
+Por último, el valor máximo de la no linealidad diferencial (DNL) refleja la variación del tamaño de los pasos entre códigos consecutivos del ADC. El valor máximo observado, de 31 LSB (25 mV), se encuentra en la zona de máximas tensiones, donde el ADC comienza a saturarse, tal y como se ha observado en los resultados previos.
+
+En conclusión, estos resultados permiten conocer el comportamiento real del ADC interno de la ESP32-C3, que demuestran las desviaciones observadas gracias a la representación de los datos realizadas. Estos valores indican que el ADC puede introducir un error de offset significativo y no linealidades (DNL), mientras que el error de ganancia es bajo. Por tanto, para aplicaciones que requieran alta precisión, podría ser necesario aplicar correcciones o calibraciones .
