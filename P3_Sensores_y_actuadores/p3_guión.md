@@ -53,6 +53,7 @@ En esta adaptación se utiliza **ESP-IDF** (framework oficial de Espressif). Par
 
 Estructura mínima recomendada (similar a como se organiza en ESP-IDF y coherente con el estilo de la práctica 2):
 
+```txt
 practica3_gps/
 ├─ CMakeLists.txt
 ├─ main/
@@ -60,6 +61,7 @@ practica3_gps/
 │ └─ main.c
 └─ scripts/ (opcional)
 └─ log_serial.py (opcional: captura por puerto serie)
+```
 
 
 **¿Qué tienes que crear/cambiar para un código simple?**
