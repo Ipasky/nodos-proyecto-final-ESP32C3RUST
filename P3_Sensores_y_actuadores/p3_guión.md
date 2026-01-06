@@ -35,7 +35,7 @@ El GPS entrega datos por UART a 9600 baudios normalmente. Se conectan 4 señales
 - **Señal (blanco/amarillo) → GPIO de salida PWM (LEDC)**
 - **GND (negro/marrón) → GND común**
 - **VCC (rojo) → 5 V**
-> El servo puede consumir bastante corriente, así que si se comporta raro, usa fuente 5 V externa y une tierras. :contentReference[oaicite:2]{index=2}
+> El servo puede consumir bastante corriente, así que si se comporta raro, usa fuente 5 V externa y une tierras.
 
 ---
 
@@ -43,8 +43,8 @@ El GPS entrega datos por UART a 9600 baudios normalmente. Se conectan 4 señales
 
 La práctica original se apoyaba en **WiringPi** y comandos de Raspberry (I2C, PWM, etc.).   
 En esta adaptación se utiliza **ESP-IDF** (framework oficial de Espressif). Para implementar la práctica se usan:
-- **Driver UART** para leer el flujo NMEA del GPS (UART events / lectura por bytes). :contentReference[oaicite:4]{index=4}
-- **Driver LEDC** para generar PWM estable a 50 Hz para el servo. :contentReference[oaicite:5]{index=5}
+- **Driver UART** para leer el flujo NMEA del GPS (UART events / lectura por bytes).
+- **Driver LEDC** para generar PWM estable a 50 Hz para el servo.
 - **FreeRTOS** para separar lectura (GPS) y actuación (servo/LED/log).
 
 ---
@@ -85,7 +85,7 @@ La aplicación final (entregable) integra:
    - Por consola se imprime el estado y valores.
    - (Opcional) LED: FIX = encendido, NO FIX = parpadeo.
 4. **Reset (opcional)**: si se pulsa un botón, se vuelve a “estado inicial” (servo centrado y espera de FIX).  
-> En la práctica original también existía una lógica de reinicio del sistema. :contentReference[oaicite:6]{index=6}
+> En la práctica original también existía una lógica de reinicio del sistema.
 
 ---
 
@@ -95,7 +95,7 @@ El GPS suele enviar frases NMEA tipo:
 - `$GPRMC` / `$GNRMC`: recomendado para **curso (track), velocidad y validez**
 - `$GPGGA` / `$GNGGA`: recomendado para **calidad de fix y altitud**
 
-En esta adaptación se parsea **RMC** por simplicidad (hay ejemplos de parsing en C/ESP-IDF). :contentReference[oaicite:7]{index=7}
+En esta adaptación se parsea **RMC** por simplicidad (hay ejemplos de parsing en C/ESP-IDF).
 
 ### Conversión típica de coordenadas NMEA a grados decimales
 
@@ -106,7 +106,7 @@ En NMEA, una coordenada suele venir como:
 Conversión:
 
 $$
-\text{grados\_dec} = \text{grados} + \frac{\text{minutos}}{60}
+\text{grados\dec} = \text{grados} + \frac{\text{minutos}}{60}
 $$
 
 ---
@@ -114,10 +114,10 @@ $$
 ## PWM de servo con LEDC (ESP32-C3)
 
 El servo se controla con:
-- **Frecuencia**: 50 Hz (período 20 ms) :contentReference[oaicite:8]{index=8}
+- **Frecuencia**: 50 Hz (período 20 ms)
 - **Pulso**: típico 1 ms (0°), 1.5 ms (90°), 2 ms (180°)
 
-Se implementa con **LEDC** (timer + channel). :contentReference[oaicite:9]{index=9}
+Se implementa con **LEDC** (timer + channel).
 
 ---
 
