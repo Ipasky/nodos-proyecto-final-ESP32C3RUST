@@ -106,7 +106,7 @@ En NMEA, una coordenada suele venir como:
 Conversión:
 
 $$
-\text{grados\dec} = \text{grados} + \frac{\text{minutos}}{60}
+\text{grados} = \text{grados} + \frac{\text{minutos}}{60}
 $$
 
 ---
@@ -238,7 +238,7 @@ Se implementa con **LEDC** (timer + channel).
 
     static void parse_rmc(const char *line)
     {
-        // Ejemplo:
+        // Ejemplo de los datos:
         // $GNRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,,A*6C
         // campos:      1     2    3      4  5       6  7     8     ...
 
@@ -327,8 +327,7 @@ Se implementa con **LEDC** (timer + channel).
                 line[idx] = '\0';
                 idx = 0;
 
-                // Mostrar línea recibida (opcional)
-                // printf("%s\n", line);
+                printf("%s\n", line);
 
                 if (strstr(line, "RMC")) {
                     parse_rmc(line);
