@@ -9,7 +9,6 @@
 #define GPIO_ENABLE_W1TS (GPIO_BASE + 0x20)
 
 #define ZUMBADOR 2 
-#define DELAY_US 1    // tiempo base para el PWM
 
 // registros GPIO
 volatile uint32_t* gpio_out_w1ts = (volatile uint32_t*) GPIO_OUT_W1TS;
