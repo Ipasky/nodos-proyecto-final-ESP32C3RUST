@@ -14,6 +14,110 @@ En concreto, además de VS Code, es necesario instalar:
 
 Esta guía detalla los pasos necesarios para instalar y configurar correctamente el entorno de desarrollo, de modo que quede listo para su uso tanto en las prácticas como en el desarrollo del proyecto final de la asignatura.
 
+Además, se va a realizar una pequeña comparación entre Raspberry Pi y ESP32-C3 previa a la guía de instalación para conocer sus características principales. 
+
+Al abordar el desarrollo de prácticas originalmente diseñadas para Raspberry Pi y adaptarlas a un ESP32-C3, es útil comprender las diferencias arquitectónicas y de uso entre ambas plataformas, ya que esto condiciona el diseño del software y el acceso a periféricos.
+
+## 1. Arquitectura y sistema operativo
+
+**Raspberry Pi**
+
+- Es una computadora completa embebida, basada en procesadores ARM más potentes.
+
+- Normalmente ejecuta un sistema operativo multitarea (Linux).
+
+- Permite múltiples procesos, administración de memoria compleja y uso de servicios de alto nivel.
+
+- Su entorno de desarrollo puede usar APIs de alto nivel (Python, Bash, C con librerías del sistema, etc.).
+
+**ESP32-C3**
+
+- Es un microcontrolador de propósito específico, con recursos de hardware más limitados (RAM, CPU).
+
+- No ejecuta un sistema operativo completo por defecto; típicamente usa RTOS embebido (FreeRTOS) o se programa “bare-metal”.
+
+- El acceso al hardware se hace de forma directa o mediante drivers de bajo nivel (p. ej. ESP-IDF).
+
+- Menor complejidad de software, mayor control temporal.
+
+
+En resumen, Raspberry Pi actúa como una mini-computadora con varios cores mientras que eSP32-C3 es un microcontrolador enfocado en tareas de control en tiempo real.
+
+## 2. Acceso a hardware y periféricos
+
+**Raspberry Pi**
+
+- Posee un conjunto de GPIOs de propósito general, accesibles mediante el sistema operativo.
+
+- No siempre hay acceso directo a registros de hardware sin usar librerías.
+
+**ESP32-C3**
+
+- Permite acceso directo a registros de hardware GPIO, temporizadores y periféricos como PWM (LEDC), I2C, ADC, etc.
+
+- El control de tiempo real es preciso: retardos en microsegundos, interrupciones, control por hardware.
+
+Por estos motivos, ESP32-C3 ofrece un mayor control de hardware y Raspberry Pi requiere abstracción por el sistema operativo.
+
+## 3. Consumo y eficiencia
+
+**Raspberry Pi**
+
+- Consume más energía (500 mA – 1 A típicamente).
+
+- Requiere fuente de alimentación estable (fuente de problemas experimentados durante la realización de las prácticas).
+
+**ESP32-C3**
+
+- Diseñado para bajo consumo ( mA en funcionamiento, µA en modo sleep).
+
+Por lo que ESP32-C3 es mucho más eficiente energéticamente.
+
+## 4. Conectividad
+
+**Raspberry Pi**
+
+- Ethernet, Wi-Fi (en modelos), Bluetooth (en modelos), puertos USB, HDMI.
+
+**ESP32-C3**
+
+- Wi-Fi y Bluetooth LE integrados, lo que lo hace perfecto para IoT.
+
+- No tiene puertos de alto nivel como USB/HDMI, SATA, etc.
+
+## 5. Desarrollo de software
+
+**Raspberry Pi**
+
+- Programación de alto nivel (Python, C, C++, Java, etc.).
+
+- Dispone de depuración avanzada, herramientas GNU completas.
+
+**ESP32-C3**
+
+- Se programa típicamente con ESP-IDF o frameworks como Arduino (también SDK).
+
+- Requiere gestión de memoria y periféricos.
+
+- Desarrollo más cercano al hardware.
+
+
+En resumen, Raspberry Pi ofrece muchas funciones y facilidades, pero con un mayor consumo y menor control; ESP32-C3 exige mayor control pero da más precisión temporal.
+
+## Tabla resumen: Raspberry Pi vs ESP32-C3
+
+| Característica            | Raspberry Pi              | ESP32-C3                     |
+|---------------------------|---------------------------|-------------------------------|
+| Tipo de sistema           | Mini-computadora          | Microcontrolador              |
+| Sistema operativo         | Linux (sí)                | No / FreeRTOS                 |
+| Acceso hardware           | Abstracción del S.O.      | Directo / registros           |
+| Tiempo real               | Difícil                   | Muy preciso                   |
+| Consumo                   | Alto                      | Muy bajo                      |
+| Periféricos               | Completo                  | Enfocado a IoT                |
+| Conectividad              | Ethernet, USB, HDMI       | Wi-Fi, BLE                    |
+| Aplicaciones típicas      | Multimedia, servidores    | Control embebido, sensores    |
+
+
 ---
 
 ### Guía de instalación de ESP-IDF Tools
@@ -83,28 +187,49 @@ El segundo vídeo es una actualización del primero, ya que este contiene alguno
 ## Primer ejemplo
 
 
+Las prácticas originales están diseñadas para ejecutarse sobre una Raspberry Pi, haciendo uso de sus periféricos y del sistema operativo subyacente. Por este motivo, su adaptación al ESP32-C3 requiere ciertas modificaciones, ya que este microcontrolador no dispone de un sistema operativo completo ni de los mismos periféricos externos que una Raspberry Pi.
 
-Las prácticas originales están diseñadas para Raspberry Pi, utilizando sus periféricos, por lo que su implementación en ESP32-C3 puede presentar algunas variaciones, ya que este microcontrolador no dispone de todas las funcionalidades ni de los elementos externos de la Raspberry Pi.
+Con el objetivo de facilitar esta transición, se plantea un primer ejemplo introductorio orientado a familiarizarse con la programación a bajo nivel del ESP32-C3, utilizando el entorno ESP-IDF y accediendo directamente a los registros de hardware. Este ejercicio permite asimilar conceptos básicos como la configuración de pines de entrada y salida, el flasheo del dispositivo y la ejecución de código en la placa.
 
-Por ello, se plantea un primer ejemplo introductorio para familiarizarse con la programación a bajo nivel en ESP-IDF. Este ejercicio sencillo permite comprender conceptos básicos como la configuración de pines de entrada y salida, el flasheado del dispositivo y la carga del código en la placa.
-
-El primer paso consiste en crear un proyecto en el que se pueden añadir archivos .c según las necesidades de la aplicación.
+El primer paso consiste en crear un proyecto básico en el que se pueden añadir archivos fuente en lenguaje C según las necesidades de la aplicación.
 
 <p align="center"> <img width="600" alt="image" src="https://github.com/user-attachments/assets/d2e0f7a0-670a-4284-a132-e36afb2c3af7" /> <img width="600" alt="image" src="https://github.com/user-attachments/assets/7c6e10c0-b680-417f-92e0-2a30cb04226d" /> </p>
 
-A partir de la documentación del fabricante, se identifican los periféricos y GPIOs disponibles. Con esta información, se ha desarrollado un código sencillo que permite controlar un LED mediante GPIO, como introducción a la primera práctica sobre modulación por ancho de pulso (PWM).
+A partir de la documentación del fabricante, se identifican los GPIOs disponibles y las direcciones de los registros de control asociados. Con esta información, se ha desarrollado un código sencillo que permite controlar el brillo de un LED conectado a un GPIO, como introducción práctica a la modulación por ancho de pulso (PWM).
 
-Para ello se utilizan funciones clave de ESP-IDF:
+En esta implementación, la señal PWM se genera por software, sin utilizar el periférico PWM por hardware del ESP32-C3. Para ello, se accede directamente a los registros GPIO mediante punteros a memoria, lo que permite forzar el pin a nivel alto o bajo con gran precisión temporal.
 
-- **gpio_reset_pin()** asegura que el pin se encuentra en un estado conocido antes de configurarlo.
+El pin del LED se configura como salida activando el bit correspondiente en el registro de habilitación:
+```c
+*gpio_enable_w1ts = (1 << LED_PIN);
+```
 
-- **gpio_set_direction()** establece el pin como salida digital.
+La modulación PWM se implementa mediante dos bucles anidados. El bucle externo ajusta progresivamente el duty cycle, mientras que el bucle interno genera un período completo de la señal PWM encendiendo o apagando el LED en función del valor del duty:
+```c
+if (i < duty)
+    *gpio_out_w1ts = (1 << LED_PIN); // LED encendido
+else
+    *gpio_out_w1tc = (1 << LED_PIN); // LED apagado
+```
 
-- **gpio_set_level()** controla el estado lógico del LED, encendiéndolo o apagándolo.
+Los retardos necesarios para definir la frecuencia de la señal se generan mediante la función ets_delay_us(), que introduce pausas en microsegundos:
+```c
+ets_delay_us(PWM_DELAY_US);
+```
 
-- **vTaskDelay()** de FreeRTOS genera retardos temporales sin bloquear el sistema, permitiendo un parpadeo periódico del LED.
+El programa incrementa gradualmente el duty cycle desde 0 hasta su valor máximo, aumentando progresivamente el brillo del LED, y posteriormente lo decrementa, produciendo un efecto de atenuación suave.
 
-Este ejemplo sirve como base para comprender el manejo de GPIOs y temporización básica, preparando el entorno para la implementación de señales PWM en prácticas posteriores.
+Este ejemplo introductorio permite comprender:
+
+- la configuración y control directo de GPIOs,
+
+- la generación de señales PWM por software,
+
+- la relación entre resolución, frecuencia y duty cycle,
+
+y el acceso a registros hardware en el ESP32-C3.
+
+Además, sienta las bases necesarias para la implementación de PWM por hardware en prácticas posteriores, así como para el desarrollo de aplicaciones más complejas de control y generación de señales.
 
 ---
 ## Práctica 1
