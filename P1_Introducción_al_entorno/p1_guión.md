@@ -82,6 +82,8 @@ El segundo vídeo es una actualización del primero, ya que este contiene alguno
 
 ## Primer ejemplo
 
+
+
 Las prácticas originales están diseñadas para Raspberry Pi, utilizando sus periféricos, por lo que su implementación en ESP32-C3 puede presentar algunas variaciones, ya que este microcontrolador no dispone de todas las funcionalidades ni de los elementos externos de la Raspberry Pi.
 
 Por ello, se plantea un primer ejemplo introductorio para familiarizarse con la programación a bajo nivel en ESP-IDF. Este ejercicio sencillo permite comprender conceptos básicos como la configuración de pines de entrada y salida, el flasheado del dispositivo y la carga del código en la placa.
@@ -106,6 +108,181 @@ Este ejemplo sirve como base para comprender el manejo de GPIOs y temporización
 
 ---
 ## Práctica 1
+# Generación de notas musicales en el ESP32-C3 mediante control software de GPIO
+
+## 1. Introducción
+
+El código desarrollado tiene como objetivo **generar señales cuadradas de distintas frecuencias mediante control software de un GPIO del ESP32-C3**, con el fin de **reproducir notas musicales en un zumbador**.  
+Este programa constituye la base para una futura implementación de un **piano digital**, donde cada nota se asocia a su frecuencia fundamental.
+
+La generación de la señal se realiza **sin utilizar el periférico PWM por hardware (LEDC)**, sino controlando directamente los registros GPIO, lo que permite comprender el funcionamiento a bajo nivel del microcontrolador.
+
+---
+
+## 2. Inclusión de librerías y definición de registros GPIO
+
+Se incluyen las librerías estándar necesarias para el manejo de tipos de datos, cadenas de caracteres y retardos a nivel de ROM:
+
+```c
+#include <stdint.h>
+#include <string.h>
+#include "esp32c3/rom/ets_sys.h"
+````
+A continuación, se definen las direcciones base de los registros GPIO del ESP32-C3 y se crean punteros para acceder directamente a ellos:
+```c
+#define GPIO_BASE        0x60004000
+#define GPIO_OUT_W1TS    (GPIO_BASE + 0x08)
+#define GPIO_OUT_W1TC    (GPIO_BASE + 0x0C)
+#define GPIO_ENABLE_W1TS (GPIO_BASE + 0x20)
+
+#define ZUMBADOR 2 
+```
+
+Estos registros permiten:
+
+- Configurar un pin como salida.
+
+- Forzar un pin a nivel alto.
+
+- Forzar un pin a nivel bajo.
+```c
+volatile uint32_t* gpio_out_w1ts = (volatile uint32_t*) GPIO_OUT_W1TS;
+volatile uint32_t* gpio_out_w1tc = (volatile uint32_t*) GPIO_OUT_W1TC;
+volatile uint32_t* gpio_enable_w1ts = (volatile uint32_t*) GPIO_ENABLE_W1TS;
+```
+## 3. Definición de estructuras de datos
+### 3.1 Estructura de notas musicales
+
+Se define una estructura Nota que asocia el nombre de la nota con su frecuencia fundamental en hercios:
+```c
+typedef struct {
+    const char *nombre;
+    int freq;   // frecuencia en Hz
+} Nota;
+
+```
+Se crea un array con las notas musicales básicas:
+```c
+Nota notas[] = {
+    {"DO", 261},
+    {"RE", 294},
+    {"MI", 329},
+    {"FA", 349},
+    {"SOL", 392},
+    {"LA", 440},
+    {"SI", 493},
+    {"DO5", 523}
+};
+```
+### 3.2 Estructura de la partitura
+
+Para definir la melodía a reproducir, se utiliza la estructura NotaPartitura, que asocia cada nota con su duración:
+```c
+typedef struct {
+    const char *nombre;
+    int duracion_ms;
+} NotaPartitura;
+
+```
+La partitura se define como un array de notas y duraciones:
+```c
+NotaPartitura partitura[] = {
+    {"DO", 400}, {"DO", 400}, {"SOL", 400}, {"SOL", 400},
+    {"LA", 400}, {"LA", 400}, {"SOL", 800},
+    {"FA", 400}, {"FA", 400}, {"MI", 400}, {"MI", 400},
+    {"RE", 400}, {"MI", 400}, {"DO", 800}
+};
+```
+## 4. Búsqueda de notas por nombre
+
+La función **Indice()** permite buscar una nota por su nombre dentro del array notas[] y devolver su índice:
+```c
+int Indice(const char *nombre) {
+    for (int i = 0; i < numNotas; i++) {
+        if (strcmp(nombre, notas[i].nombre) == 0) return i;
+    }
+    return -1;
+}
+
+```
+Esta función facilita la obtención de la frecuencia correspondiente a cada nota musical.
+
+## 5. Función de retardo
+
+La función **delay_ms()** implementa retardos en milisegundos utilizando retardos en microsegundos de la ROM del ESP32-C3:
+```c
+void delay_ms(int t) {
+    ets_delay_us(t * 1000);
+}
+```
+
+Se emplea para introducir pausas entre notas y entre repeticiones de la melodía.
+
+## 6. Generación de las notas musicales
+
+La función **play_nota()** es la encargada de generar la señal cuadrada correspondiente a una nota musical concreta:
+```c
+void play_nota(const char *nota, int duracion_ms) {
+    int freq = notas[Indice(nota)].freq;
+    if (freq <= 0) return;
+```
+
+A partir de la frecuencia se calcula el período de la señal y se establece un duty cycle del 50 %:
+```c 
+    int periodo_us = 1000000 / freq;
+    int mitad_periodo = periodo_us / 2;
+    int repeticiones = (duracion_ms * 1000) / periodo_us;
+```
+
+El GPIO se conmuta entre nivel alto y bajo para generar la señal:
+```c
+    for (int i = 0; i < repeticiones; i++) {
+        *gpio_out_w1ts = (1 << ZUMBADOR);
+        ets_delay_us(mitad_periodo);
+
+        *gpio_out_w1tc = (1 << ZUMBADOR);
+        ets_delay_us(mitad_periodo);
+    }
+
+    delay_ms(50);
+}
+```
+## 7. Función principal app_main()
+
+En la función principal se configura el pin del zumbador como salida:
+```c
+void app_main(void) {
+    *gpio_enable_w1ts = (1 << ZUMBADOR);
+```
+
+A continuación, se reproduce la partitura de forma continua dentro de un bucle infinito:
+```c
+    while (1) {
+        for (int i = 0; i < longPartitura; i++) {
+            play_nota(partitura[i].nombre, partitura[i].duracion_ms);
+        }
+
+        delay_ms(200);
+    }
+}
+```
+## 8. Conclusión
+
+Este código permite comprender:
+
+- el manejo directo de los registros GPIO del ESP32-C3,
+
+- la generación de señales periódicas por software,
+
+- la relación entre frecuencia, período y duración de una señal,
+
+y la síntesis básica de sonido mediante un zumbador.
+
+Además, constituye una base sólida para una futura implementación de un piano digital, donde la generación de sonido podría migrarse a un sistema PWM por hardware para mejorar la eficiencia y reducir la carga de la CPU.
+
+
+---
+
 El objetivo de este ejercicio es familiarizarse con la generación de señales PWM en el ESP32-C3 utilizando el periférico LEDC de ESP-IDF. Se busca comprender cómo configurar los parámetros de PWM —frecuencia, resolución y duty cycle— y cómo modificar dinámicamente la señal en tiempo de ejecución.
 
 Para ello, se ha desarrollado un código que:
@@ -118,21 +295,7 @@ Para ello, se ha desarrollado un código que:
 
 Este ejercicio sirve como base para el siguiente paso: implementar un piano digital, en el que cada tecla corresponde a un GPIO y se genera un tono específico mediante PWM según la frecuencia fundamental de cada nota musical. La práctica permitirá aplicar los conceptos de PWM para producir señales audibles y manipular su frecuencia y amplitud de manera controlada.
 
----
-### Explicación del código
-
-El código desarrollado tiene como objetivo generar una señal PWM controlada por software en el ESP32-C3 y modificar progresivamente su duty cycle. Esto sirve como base para la futura implementación de un piano digital mediante PWM.
-
-- **Inclusión de librerías**
-Se incluyen las librerías necesarias para el funcionamiento del ESP32 y la gestión de FreeRTOS (freertos/FreeRTOS.h), GPIO (driver/gpio.h) y el periférico PWM LEDC (driver/ledc.h). También se incluye <esp_rom_sys.h> para funciones de retardo y <sys/time.h> para gestión de temporización si fuera necesario.
-
-- **Función delay_ms()**
-Permite introducir retardos en milisegundos sin bloquear completamente el sistema, usando la función vTaskDelay() de FreeRTOS. Esto es útil para temporizar la actualización del duty cycle de la señal PWM de manera controlada.
-
-- **Función PWMconfigLow()**
-Esta función configura un canal PWM en modo de baja velocidad (LEDC_LOW_SPEED_MODE).
-
-Se define el timer del canal, la resolución de duty cycle, la frecuencia de la señal y el duty inicial.
+timer del canal, la resolución de duty cycle, la frecuencia de la señal y el duty inicial.
 
 Se configura el canal LEDC asignándole el GPIO de salida y la duty cycle correspondiente.
 
