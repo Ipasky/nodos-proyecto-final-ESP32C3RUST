@@ -404,15 +404,15 @@ A continuación, se reproduce la partitura de forma continua dentro de un bucle 
 
 Este código permite comprender:
 
-- el manejo directo de los registros GPIO del ESP32-C3,
+- el manejo directo de los registros GPIO del ESP32-C3.
 
-- la generación de señales periódicas por software,
+- la generación de señales periódicas por software.
 
-- la relación entre frecuencia, período y duración de una señal,
+- la relación entre frecuencia, período y duración de una señal.
 
 y la síntesis básica de sonido mediante un zumbador.
 
-Además, constituye una base sólida para una futura implementación de un piano digital, donde la generación de sonido podría migrarse a un sistema PWM por hardware para mejorar la eficiencia y reducir la carga de la CPU.
+Gracias a este código se consigue generar un piano digital mediante la generación de señales PWM. 
 
 
 ---
