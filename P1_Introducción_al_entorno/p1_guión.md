@@ -254,6 +254,15 @@ Se incluyen las librerías estándar necesarias para el manejo de tipos de datos
 #include "esp32c3/rom/ets_sys.h"
 ````
 A continuación, se definen las direcciones base de los registros GPIO del ESP32-C3 y se crean punteros para acceder directamente a ellos:
+
+<p align="center">
+
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/ee7cbcf6-0a17-442d-a8d2-438c65caa041" />
+</p>
+<p align="center">
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/302e5f9d-8e9b-4a05-8654-f048e175d05b" />
+</p>
+
 ```c
 #define GPIO_BASE        0x60004000
 #define GPIO_OUT_W1TS    (GPIO_BASE + 0x08)
