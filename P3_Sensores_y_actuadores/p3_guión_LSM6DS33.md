@@ -8,6 +8,8 @@ La práctica original estaba diseñada para realizarse sobre una Raspberry Pi, u
 
 Para la realización de esta práctica en la plataforma **ESP32-C3**, se mantiene el mismo sensor (LSM6DS33) y actuador, pero se migra la arquitectura software desde un sistema operativo completo (Linux/Raspbian) a un entorno de tiempo real sobre metal (**ESP-IDF**). Además, se implementa una lógica de control basada en umbrales de inclinación (*Pitch*) para controlar la dirección de giro de un servomotor de rotación continua.
 
+![Imagen Montaje](../data/img_03.jpg)
+
 ## Cambios en la plataforma hardware
 
 La ESP32-C3 dispone de un controlador hardware para el bus **I2C (Inter-Integrated Circuit)**, lo que permite la comunicación síncrona maestro-esclavo con el sensor. A diferencia de la implementación original en Raspberry Pi (que solía usar *bit-banging* o drivers del kernel), aquí tendremos control directo sobre la configuración del bus.
