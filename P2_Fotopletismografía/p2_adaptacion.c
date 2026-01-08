@@ -54,7 +54,7 @@ void pwm(int pin, float duty, int periodo_us)
     ets_delay_us(toff);
 }
 
-//función en la 
+
 void app_main(void)
 {
     //se inicializa el PWM y ADC
