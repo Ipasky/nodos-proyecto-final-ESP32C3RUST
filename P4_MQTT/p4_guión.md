@@ -1,76 +1,81 @@
-# Guión Práctica 4: Sistema IoT con MQTT y Visualización Web
+# Guión Práctica 4: Sistema IoT Distribuido: Sensorización, MQTT y Visualización
 
-## 1. Objetivo de la práctica
+## Adaptación de la Práctica 4 a la plataforma ESP32-C3
 
-Diseñar e implementar un sistema IoT capaz de:
+El objetivo de esta práctica es el diseño e implementación de un sistema **IoT (Internet of Things)** completo, abordando la cadena de valor del dato desde su adquisición física hasta su visualización remota.
 
-* **Adquirir datos** de dos fuentes distintas:
+La práctica original estaba diseñada sobre una Raspberry Pi con sistema operativo Linux, donde se ejecutaban múltiples procesos independientes (sensores, alarma, climatización) comunicados entre sí. Para la paralelización de tareas se utilizaba la librería POSIX Threads (`pthreads`).
 
-  * **GPS (NEO-7M)** mediante **UART** (tramas NMEA).
-  * **Temperatura y presión (BMP/BME280)** mediante **I2C**.
-* **Publicar** dichos datos por **MQTT** a un broker (en este caso **Mosquitto en local**).
-* **Visualizar** los datos en tiempo real mediante un **servidor Node.js** que actúa como **suscriptor MQTT** y ofrece una **interfaz web**.
+En esta adaptación para la **ESP32-C3**, migramos la arquitectura a un entorno de microcontrolador industrial. Esto implica desafíos arquitectónicos importantes:
 
-Imagen del montaje final:
-![Imagen Montaje](../data/img_02.jpg)
+1. **Restricción de Hardware:** Pasamos de un procesador multi-núcleo (ARM Cortex-A) a un microcontrolador **Single-Core** (RISC-V).
+2. **Gestión de Concurrencia:** Sustituimos el paralelismo real y los hilos del SO por un **Sistema Operativo en Tiempo Real (FreeRTOS)** que gestiona la concurrencia mediante *Time Slicing*.
+3. **Visualización:** Sustituimos los actuadores locales por un **Dashboard Web** remoto basado en Node.js.
 
-Captura de la interfaz web:
-![Imagen Web](../data/img_01.png)
+## Cambios en la plataforma hardware
 
----
+La ESP32-C3 integra controladores hardware dedicados para los protocolos de comunicación necesarios, lo que permite liberar a la CPU de la gestión de señales bit a bit (*bit-banging*).
 
-## 2. Diferencias respecto a la práctica original
+La práctica se centra en la integración simultánea de dos buses de comunicación distintos:
 
-En la práctica original (Raspberry Pi + Linux) se ejecutaban **varios programas independientes** (sensores, alarma, clima…) y se usaban **hilos POSIX (`pthreads`)** para paralelizar lecturas.
+* **Protocolo UART (Asíncrono):** Para la recepción de tramas NMEA del **GPS NEO-7M**.
+* **Protocolo I2C (Síncrono):** Para la lectura de registros del sensor ambiental **BMP280/BME280**.
 
-En **ESP32-C3** esto cambia por dos motivos:
+### Esquema de Conexiones
 
-1. **No existe multiproceso** como en Linux (no podemos lanzar “3 programas” separados como procesos).
-2. La ESP32-C3 es **single-core**, así que **no hay paralelismo real** (no ejecuta dos cosas “a la vez” físicamente). 
-
-### Solución aplicada: FreeRTOS (concurrencia con tareas)
-
-Para suplirlo, el firmware se estructura con **FreeRTOS Tasks**. Aunque haya un solo núcleo, el **scheduler** reparte el tiempo de CPU y alterna rápidamente entre tareas (**concurrencia por time-slicing**). 
+| Dispositivo | Interfaz | Pines ESP32-C3 | Descripción |
+| --- | --- | --- | --- |
+| **GPS NEO-7M** | UART1 | TX GPS  GPIO 20 (RX) | Recepción de flujo de datos continuo |
+|  |  | RX GPS  GPIO 21 (TX) | (Opcional) Envío de comandos de configuración |
+| **BMP280** | I2C | SDA  GPIO 8 | Línea de datos bidireccional |
+|  |  | SCL  GPIO 10 | Línea de reloj (Master: ESP32) |
 
 ---
 
-## 3. Arquitectura final del sistema
+## Configuración a bajo nivel de los periféricos
 
-**Nodo 1 (ESP32-C3) – Nodo Sensor / Edge Node**
+Al igual que en las prácticas anteriores, aunque utilizaremos drivers de alto nivel, es fundamental comprender qué ocurre dentro del silicio. La ESP32-C3 gestiona estos protocolos mediante registros mapeados en memoria.
 
-* Lee GPS (UART) + BMP/BME280 (I2C)
-* Publica por MQTT en `sensor/data`
+### Registros principales del periférico UART (GPS)
 
-**Nodo 2 (PC – Mosquitto) – Broker MQTT**
+La comunicación con el GPS es asíncrona y continua. El hardware debe ser capaz de almacenar los datos que llegan mientras la CPU está ocupada en otras tareas.
 
-* Broker local en `localhost:1883`
+#### UART_FIFO_REG
 
-**Nodo 3 (PC – Node.js) – Suscriptor + Dashboard Web**
+Es el registro de acceso a la memoria. La ESP32-C3 dispone de un **buffer circular hardware (FIFO)** de 128 bytes.
 
-* Se suscribe a `sensor/data`
-* Reenvía datos al navegador (WebSockets) y los muestra en una interfaz web
+* Cuando el GPS envía un byte, este entra automáticamente en la FIFO de recepción (`RX_FIFO`).
+* La CPU lee de este registro para vaciar la FIFO. Si la CPU no lee lo suficientemente rápido y la FIFO se llena, los nuevos datos se perderán (evento *FIFO Overflow*).
 
----
+#### UART_INT_ENA_REG
 
-## 4. Hardware y conexiones
+Habilita las interrupciones. Para un manejo eficiente del GPS, es crítico habilitar la interrupción `RXFIFO_FULL_INT` (cuando el buffer tiene cierta cantidad de datos) o `RXFIFO_TOUT_INT` (cuando han llegado datos pero la línea se ha quedado en silencio, indicando fin de trama), para que la CPU solo atienda al GPS cuando sea necesario.
 
-### 4.1. ESP32-C3 + GPS NEO-7M (UART)
+### Registros principales del periférico I2C (Sensores)
 
-* GPS **TX → RX** de la ESP32 (pin RX configurado en el código)
-* GPS **RX → TX** de la ESP32 (solo necesario si vas a enviar comandos al GPS)
-* **GND común** siempre obligatorio
-* Alimentación: según tu módulo (muchos NEO-7M aceptan 5V en “VCC” si llevan regulador, pero la lógica UART suele ser 3.3V; si dudas, usa 3.3V o mide la salida TX del módulo).
+#### I2C_MASTER_TR_REG
 
-### 4.2. ESP32-C3 + BMP/BME280 (I2C)
+Al contrario que la UART, el I2C es síncrono. Este registro gestiona la cola de comandos que el maestro (ESP32) enviará al bus. Aquí se cargan secuencialmente: la dirección del esclavo (0x76 para BMP280), el bit de lectura/escritura y los datos.
 
-* SDA ↔ SDA
-* SCL ↔ SCL
-* VCC (normalmente 3.3V en módulos para MCU)
-* GND común
+#### I2C_SDA_SAMPLE_REG
+
+Controla el momento exacto en el que el hardware muestrea la línea de datos SDA respecto al flanco del reloj SCL. Una desincronización en este registro a altas velocidades (100kHz o 400kHz) provocaría errores de comunicación ACK/NACK.
 
 ---
 
-## 5. Firmware en ESP-IDF: estructura basada en FreeRTOS
+## Cambios en el entorno software: De Hilos a Tareas
+
+La diferencia conceptual más profunda de esta práctica reside en el modelo de ejecución.
+
+### Justificación: ¿Por qué no usamos `pthreads`?
+
+En la práctica original (Linux), `pthread_create` solicitaba al Núcleo del Sistema Operativo que crease un nuevo hilo de ejecución. Si el procesador tenía varios núcleos, estos hilos podían ejecutarse **físicamente a la vez** (Paralelismo).
+
+En la ESP32-C3, solo tenemos un núcleo. Si intentásemos ejecutar dos bucles `while(1)` infinitos, el primero bloquearía al segundo para siempre.
+
+### Solución: El Planificador (Scheduler) de FreeRTOS
+
+Para suplir esto, utilizamos **FreeRTOS**. El *Scheduler* es un componente software que detiene e inicia tareas tan rápido que da la sensación de simultaneidad (**Concurrencia**).
 
 El firmware se implementa como **tres tareas principales**, además de las tareas internas del stack de WiFi/MQTT (que también corren sobre FreeRTOS).
 
@@ -97,37 +102,36 @@ El firmware se implementa como **tres tareas principales**, además de las tarea
 
 Este diseño coincide con el enfoque de “tareas separadas” que se describe en tu guión, sustituyendo los “programas independientes” de Linux por **tareas de FreeRTOS dentro de un único firmware**.
 
----
-
-## 6. Sincronización y datos compartidos
-
-Como varias tareas comparten información (por ejemplo, la tarea GPS escribe una trama y la tarea MQTT la lee), es necesario proteger los datos para evitar lecturas corruptas.
-
-Opciones típicas:
-
-* **Mutex/Semáforo**
-* **Colas (Queues)**
-* **Secciones críticas (`portENTER_CRITICAL`)** si el intercambio es corto y simple
-
-En esta práctica se utiliza un mecanismo de sincronización simple para garantizar coherencia cuando una tarea actualiza datos que otra tarea va a publicar. 
+> **Importante:** A diferencia de la programación secuencial clásica (Arduino), aquí **nunca** se debe usar un `delay()` bloqueante que detenga la CPU. Se deben usar las funciones del sistema operativo (`vTaskDelay`) que indican al planificador: "Cede mi turno de CPU a otra tarea durante X milisegundos".
 
 ---
 
-## 7. Formato del mensaje MQTT
+## Desarrollo de la Práctica
 
-Se utiliza un JSON para simplificar la integración con Node.js:
+### 1. Integración de Drivers (UART e I2C)
+
+Se deben inicializar los drivers `uart` y `i2c_master` de ESP-IDF. Estos drivers abstraen la complejidad de los registros mencionados anteriormente (`UART_FIFO_REG`, etc.) y gestionan internamente las interrupciones (ISRs) para llenar buffers de software intermedios.
+
+### 2. Implementación del Cliente MQTT
+
+Se utilizará la librería `esp-mqtt`. El protocolo MQTT se basa en el modelo **Publicación/Suscripción**, ideal para dispositivos IoT con ancho de banda limitado:
+
+* **Broker:** El servidor central (Mosquitto en vuestro PC).
+* **Topic:** La "frecuencia" o canal donde publicamos. Usaremos `sensor/data`.
+* **Payload:** El mensaje. Para facilitar el procesado, se usará formato **JSON**.
 
 ```json
-{"temp": 24.5, "press": 1013.2, "gps": "$GNRMC,..."}
+{
+  "temp": 24.5,
+  "press": 1013.2,
+  "gps": "$GNRMC,123519,A,4807.038,N..."
+}
+
 ```
 
-* Si el GPS **no ha actualizado** (o no hay FIX), se publica un placeholder (por ejemplo `"-"` o una trama con estado `V`), para que la web pueda mostrar “sin señal” de forma clara. 
+### 3. Desarrollo del Nodo Servidor (node.js)
 
----
-
-## 8. Nodo Servidor (Node.js): suscriptor + dashboard
-
-En el PC se implementa una aplicación **Node.js** con dos roles:
+Para cerrar el ciclo, no usaremos actuadores físicos, sino digitales. Se implementará un servidor en **Node.js** que cumplirá dos funciones simultáneas:
 
 1. **Suscriptor MQTT (backend):**
 
@@ -137,55 +141,35 @@ En el PC se implementa una aplicación **Node.js** con dos roles:
 
 2. **Servidor web (frontend):**
 
-   * Sirve una página web (por ejemplo con Express)
-   * Envía datos en tiempo real con WebSockets (por ejemplo Socket.io)
+   * Sirve una página web
+   * Envía datos en tiempo real con WebSockets (por ejemplo `socket.io`)
    * Muestra:
 
      * Tarjetas/valores: temperatura y presión
-     * (Opcional) Mapa: si se parsean coordenadas del GPS
+     * Mapa: si se parsean coordenadas del GPS
 
 ---
 
-## 9. Verificación y puesta en marcha
+## Análisis de los Resultados
 
-### 9.1. Broker Mosquitto (Windows, local)
+### Verificación del Sistema
 
-* Asegurar que el servicio Mosquitto está activo.
-* Probar suscripción en una terminal (si `mosquitto_sub` no aparece, suele ser un problema de PATH):
+Para validar el correcto funcionamiento de la arquitectura distribuida, se deben seguir los siguientes pasos:
 
-```bat
-mosquitto_sub -h localhost -t sensor/data -v
-```
+1. **Arranque del Broker:** Verificar que Mosquitto está corriendo en el PC (`localhost:1883`).
+2. **Monitorización Serie:** Al arrancar la ESP32, el log debe mostrar la secuencia:
+* `I2C Init OK` -> `UART Init OK`.
+* `WiFi Connected` -> `IP Assigned`.
+* `MQTT Connected`.
 
-### 9.2. ESP32
 
-Flashear y monitorizar:
+3. **Recepción de Datos:**
+* En la consola del PC (Node.js), deben aparecer los objetos JSON llegando periódicamente.
+* Si el GPS está en interiores, el campo GPS puede estar vacío o contener una trama con estado "V" (Void), pero la temperatura debe ser correcta.
 
-```bash
-idf.py build flash monitor
-```
 
-Comprobar en consola:
+4. **Dashboard Web:** Accediendo a `http://localhost:3000`, los widgets de temperatura deben actualizarse cada vez que el ESP32 publica, y el mapa debe centrarse en las coordenadas recibidas.
 
-* Conexión WiFi
-* Conexión MQTT
-* Publicaciones periódicas en `sensor/data`
+### Conclusión
 
-### 9.3. Node.js
-
-Ejecutar el servidor y abrir el navegador:
-
-```txt
-http://localhost:3000
-```
-
-Verificar que:
-
-* Llegan JSONs al servidor
-* La web se actualiza sin recargar
-
----
-
-## 10. Conclusión
-
-Esta adaptación transforma una arquitectura “tipo Linux” (multiproceso + hilos POSIX) en una arquitectura IoT realista basada en **un único firmware** sobre ESP32-C3, donde la concurrencia se logra con **FreeRTOS Tasks** y un **scheduler** que reparte el tiempo de CPU. De esta forma, el sistema mantiene lecturas de sensores y comunicación MQTT sin bloquear el funcionamiento, pese a trabajar en un microcontrolador **single-core**.
+Esta práctica demuestra cómo transformar una arquitectura basada en microprocesadores potentes (Raspberry Pi) a una arquitectura de microcontroladores eficientes (ESP32). La pérdida de potencia de cálculo (Single-Core) se compensa mediante una gestión inteligente de los recursos (FreeRTOS) y el uso de periféricos hardware dedicados (DMA, FIFO), permitiendo crear nodos IoT industriales robustos y de bajo consumo.
