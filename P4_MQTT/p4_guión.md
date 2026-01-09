@@ -12,6 +12,14 @@ En esta adaptación para la **ESP32-C3**, migramos la arquitectura a un entorno 
 2. **Gestión de Concurrencia:** Sustituimos el paralelismo real y los hilos del SO por un **Sistema Operativo en Tiempo Real (FreeRTOS)** que gestiona la concurrencia mediante *Time Slicing*.
 3. **Visualización:** Sustituimos los actuadores locales por un **Dashboard Web** remoto basado en Node.js.
 
+Imagen del montaje final:
+
+![Imagen Montaje](../data/img_02.jpg)
+
+Captura de la interfaz web:
+
+![Imagen Web](../data/img_01.png)
+
 ## Cambios en la plataforma hardware
 
 La ESP32-C3 integra controladores hardware dedicados para los protocolos de comunicación necesarios, lo que permite liberar a la CPU de la gestión de señales bit a bit (*bit-banging*).
