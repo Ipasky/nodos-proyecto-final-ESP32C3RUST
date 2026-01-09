@@ -179,8 +179,8 @@ Para seguir paso a paso la configuración del entorno en Visual Studio Code y ve
 
 El segundo vídeo es una actualización del primero, ya que este contiene algunos pasos o datos que han quedado desfasados:
 
-- `https://www.youtube.com/watch?v=5IuZ-E8Tmhg&t=57s`
-- `https://www.youtube.com/watch?v=N93RvZz6dEc`
+[![Tutorial de instalación](https://www.youtube.com/watch?v=5IuZ-E8Tmhg&t=57s/hqdefault.jpg)](https://www.youtube.com/watch?v=5IuZ-E8Tmhg&t=57s)
+[![Actualizacion tutorial](https://www.youtube.com/watch?v=N93RvZz6dEc/hqdefault.jpg)](https://www.youtube.com/watch?v=N93RvZz6dEc)
 
 
 ---
