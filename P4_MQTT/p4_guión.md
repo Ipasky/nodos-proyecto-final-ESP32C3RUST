@@ -15,7 +15,7 @@ Imagen del montaje final:
 ![Imagen Montaje](../data/img_02.jpg)
 
 Captura de la interfaz web:
-![Imagen Web](../data/img_01.jpg)
+![Imagen Web](../data/img_01.png)
 
 ---
 
