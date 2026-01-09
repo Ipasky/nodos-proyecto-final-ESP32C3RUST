@@ -11,7 +11,11 @@ Diseñar e implementar un sistema IoT capaz de:
 * **Publicar** dichos datos por **MQTT** a un broker (en este caso **Mosquitto en local**).
 * **Visualizar** los datos en tiempo real mediante un **servidor Node.js** que actúa como **suscriptor MQTT** y ofrece una **interfaz web**.
 
+Imagen del montaje final:
 ![Imagen Montaje](../data/img_02.jpg)
+
+Captura de la interfaz web:
+![Imagen Web](../data/img_01.jpg)
 
 ---
 
